@@ -19,7 +19,7 @@ def tograyscale(image):
     return image
 
 def detect_edges(image, thresh1=0, thresh2=80):
-    edges = cv2.Canny(image, thresh1, thresh2, 25)
+    edges = cv2.Canny(image, thresh1, thresh2, 5)
     return edges
 
 def detect_edges_sobel(img):
@@ -55,45 +55,39 @@ def high_pass_filter(img, filter_size):
         high_pass[:,:,i] = np.real(np.fft.ifft2(f_ishift))
     return np.array(np.clip(high_pass * 255, 0, 255), dtype='uint8')
 
-def boxcount(image, sizes, thresh=128):
+def calc_sum_area(table, br, tl):
+    return table[tl[0]][tl[1]] + table[br[0]][br[1]] - table[tl[0]][br[1]] - table[br[0]][tl[1]]
+
+def boxcount(image, sizes):
     x = []
     y = []
     rows, cols = image.shape
 
+    prefsum = np.zeros((rows + 1, cols + 1))
+    prefsum[1:,1:] = image.cumsum(axis=0).cumsum(axis=1)
     for box_size in sizes:
         black_box_count = 0
         for row in range(0, rows, box_size):
             for col in range(0, cols, box_size):
-                in_box = False
-                for box_row in range(0, min(box_size, rows - row)):
-                    for box_col in range(0, min(box_size, cols - col)):
-                        if (image[row + box_row][col + box_col] > thresh):
-                            in_box = True
-                            break
-                    if (in_box):
-                        break
+                in_box = (prefsum[min(row + box_size, rows)][min(col + box_size, cols)] - prefsum[row][col]) > 0
                 black_box_count += in_box
         x.append(math.log(1/box_size))
         y.append(math.log(black_box_count))
     return x, y
 
-def boxcount_4x(image, sizes, thresh=128):
+def boxcount_4x(image, sizes):
     x = []
     y = []
     rows, cols = image.shape
+
+    prefsum = np.zeros((rows + 1, cols + 1))
+    prefsum[1:,1:] = image.cumsum(axis=0).cumsum(axis=1)
 
     for box_size in sizes:
         black_box_count = 0
         for row in range(0, rows, box_size):
             for col in range(0, cols, box_size):
-                in_box = False
-                for box_row in range(0, min(box_size, rows - row)):
-                    for box_col in range(0, min(box_size, cols - col)):
-                        if (image[row + box_row][col + box_col] > thresh):
-                            in_box = True
-                            break
-                    if (in_box):
-                        break
+                in_box = (calc_sum_area(prefsum, (min(row + box_size, rows), min(col + box_size, cols)), (row, col))) > 0
                 black_box_count += in_box
         x.append(math.log(1/box_size))
         y.append(math.log(black_box_count))
@@ -101,14 +95,7 @@ def boxcount_4x(image, sizes, thresh=128):
         black_box_count = 0
         for row in range(0, rows, box_size):
             for col in range(cols - box_size - 1, -box_size, -box_size):
-                in_box = False
-                for box_row in range(0, min(box_size, rows - row)):
-                    for box_col in range(0, min(box_size, cols - col)):
-                        if (image[row + box_row][max(col + box_col, 0)] > thresh):
-                            in_box = True
-                            break
-                    if (in_box):
-                        break
+                in_box = (calc_sum_area(prefsum, (min(box_size + row, rows), col + box_size), (row, max(col, 0)))) > 0
                 black_box_count += in_box
         x.append(math.log(1/box_size))
         y.append(math.log(black_box_count))
@@ -116,14 +103,7 @@ def boxcount_4x(image, sizes, thresh=128):
         black_box_count = 0
         for row in range(rows - box_size - 1, -box_size, -box_size):
             for col in range(cols - box_size - 1, -box_size, -box_size):
-                in_box = False
-                for box_row in range(0, min(box_size, rows - row)):
-                    for box_col in range(0, min(box_size, cols - col)):
-                        if (image[max(row + box_row, 0)][max(col + box_col, 0)] > thresh):
-                            in_box = True
-                            break
-                    if (in_box):
-                        break
+                in_box = (calc_sum_area(prefsum, (box_size + row, box_size + col), (max(row, 0), max(col, 0)))) > 0
                 black_box_count += in_box
         x.append(math.log(1/box_size))
         y.append(math.log(black_box_count))
@@ -131,14 +111,7 @@ def boxcount_4x(image, sizes, thresh=128):
         black_box_count = 0
         for row in range(rows - box_size - 1, -box_size, -box_size):
             for col in range(0, cols, box_size):
-                in_box = False
-                for box_row in range(0, min(box_size, rows - row)):
-                    for box_col in range(0, min(box_size, cols - col)):
-                        if (image[max(row + box_row, 0)][col + box_col] > thresh):
-                            in_box = True
-                            break
-                    if (in_box):
-                        break
+                in_box = (calc_sum_area(prefsum, (box_size + row, min(box_size + col, cols)), (max(row, 0), col))) > 0
                 black_box_count += in_box
         x.append(math.log(1/box_size))
         y.append(math.log(black_box_count))

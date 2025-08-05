@@ -14,10 +14,11 @@ paths = manager.list()
 fds = manager.list()
 quality = manager.list()
 
-box_sizes = [2 ** n for n in range(1, 7)]
+box_sizes = [2 ** n for n in range(1, 8)]
 
 def calc_fd(path, label, fds, paths, quality):
     edges = detect_edges(high_pass_filter(fillalpha(readfile(path)), 0))
+    edges = edges[:,:] > 127
     x, y = boxcount_4x(edges, box_sizes)
     fd, _ = linregression(x, y)
     print(fd, path, label)

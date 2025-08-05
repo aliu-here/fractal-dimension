@@ -67,7 +67,7 @@ ax[0].axvline(x = best_acc_cutoff, c = (0, 1, 0))
 ax[1].axvline(x = best_acc_cutoff, c = (0, 1, 0))
 
 
-ax[0].set_xlim(1, 1.75)
-ax[1].set_xlim(1, 1.75)
+ax[0].set_xlim(1, 2)
+ax[1].set_xlim(1, 2)
 
 plt.show()
