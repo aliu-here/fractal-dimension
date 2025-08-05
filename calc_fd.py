@@ -17,7 +17,7 @@ quality = manager.list()
 box_sizes = [2 ** n for n in range(1, 7)]
 
 def calc_fd(path, label, fds, paths, quality):
-    edges = detect_edges(fillalpha(readfile(path)))
+    edges = detect_edges(high_pass_filter(fillalpha(readfile(path)), 0))
     x, y = boxcount_4x(edges, box_sizes)
     fd, _ = linregression(x, y)
     print(fd, path, label)
@@ -36,7 +36,7 @@ for filename in glob.glob(good_path + "/*.jpg"):
     #calc_fd(filename, "Good")
     t = Process(target=calc_fd, args=(filename, "Good", fds, paths, quality))
     threads.append(t)
-    cv2.imwrite("test.png", detect_edges(fillalpha(readfile(filename))))
+    cv2.imwrite("test.png", detect_edges(high_pass_filter(fillalpha(readfile(filename)), 0)))
 
 for t in threads:
     t.start()
@@ -49,4 +49,4 @@ print(paths, fds, quality)
 out = pd.DataFrame({"filename" : list(paths),
                     "fractal dimension": list(fds),
                     "quality" : list(quality)})
-out.to_csv("fds_4xboxcount_sobelfilter.csv")
+out.to_csv("fds_4xboxcount_fft.csv")

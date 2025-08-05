@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-data = pd.read_csv("./fds_4xboxcount_sobelfilter.csv")
+data = pd.read_csv("./fds_4xboxcount_fft.csv")
 
 fig, ax = plt.subplots(2)
 
@@ -48,20 +48,14 @@ for cutoff in (good + bad):
     if (acc > best_acc):
         best_acc = acc
         best_acc_cutoff = cutoff
-        print(tp, fp, tn, fn)
-    if (sens > best_sens):
         best_sens = sens
-        best_sens_cutoff = cutoff
-    if (spec > best_spec):
         best_spec = spec
-        best_spec_cutoff = cutoff
+        print(tp, fp, tn, fn)
     
-print(f"cutoff with best accuracy: {best_acc_cutoff}; has accuracy {best_acc}")
-print(f"cutoff with best sensitivity: {best_sens_cutoff}; has sensitivity {best_sens}")
-print(f"cutoff with best specificity: {best_spec_cutoff}; has specificity {best_spec}")
+print(f"cutoff with best accuracy: {best_acc_cutoff}; has accuracy {best_acc}, specificity {best_spec}, sensitivity {best_sens}")
 
-good_hist, good_edges = np.histogram(good, 20)
-bad_hist, bad_edges = np.histogram(bad, 20)
+good_hist, good_edges = np.histogram(good, 50, (1,2))
+bad_hist, bad_edges = np.histogram(bad, 50, (1, 2))
 
 ax[0].stairs(good_hist, good_edges, fill=True)
 ax[1].stairs(bad_hist, bad_edges, fill=True)

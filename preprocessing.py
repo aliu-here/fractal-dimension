@@ -1,6 +1,7 @@
 import cv2
 import math
 import numpy as np
+import copy
 
 def readfile(path):
     image = cv2.imread(path, cv2.IMREAD_UNCHANGED)
@@ -28,6 +29,31 @@ def detect_edges_sobel(img):
     grad = np.sqrt(grad_x**2 + grad_y**2)
     grad_norm = (grad * 255 / grad.max()).astype(np.uint8)
     return grad_norm
+
+def high_pass_filter(img, filter_size):
+    rows, cols, depth = img.shape
+    optimal_rows, optimal_cols = (cv2.getOptimalDFTSize(rows), cv2.getOptimalDFTSize(cols))
+    tmp = np.zeros((optimal_rows, optimal_cols, depth))
+    tmp[:rows,:cols] = img[:,:]
+    img = tmp
+    rows, cols = optimal_rows, optimal_cols
+    f_r, f_g, f_b = np.fft.fft2(np.float64(img[:,:,0]) / 255), np.fft.fft2(np.float64(img[:,:,1]) / 255), np.fft.fft2(np.float64(img[:,:,2]) / 255)
+    fshift_r, fshift_g, fshift_b = np.fft.fftshift(f_r), np.fft.fftshift(f_g), np.fft.fftshift(f_b)  
+
+    center_row = rows // 2
+    center_col = cols // 2
+    transformed = [copy.deepcopy(fshift_r), copy.deepcopy(fshift_g), copy.deepcopy(fshift_b)]
+    for channel in transformed:
+        mask = np.zeros((rows, cols))
+        mask[center_row - filter_size:center_row + filter_size + 1, center_col - filter_size : center_col + filter_size + 1] = 1
+        channel[mask != 0] = 0
+
+    high_pass = np.zeros(img.shape)
+    high_pass[:,:,3] = 1
+    for i in range(3):
+        f_ishift = np.fft.ifftshift(transformed[i])
+        high_pass[:,:,i] = np.real(np.fft.ifft2(f_ishift))
+    return np.array(np.clip(high_pass * 255, 0, 255), dtype='uint8')
 
 def boxcount(image, sizes, thresh=128):
     x = []
