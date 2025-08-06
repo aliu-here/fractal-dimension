@@ -26,7 +26,7 @@ def calc_fd(files, labels, fds, paths, quality):
         fds.append(fd)
         paths.append(path)
         quality.append(label)
-thread_count = 16
+thread_count = 1
 
 divided_files = []
 divided_labels = []

@@ -21,11 +21,7 @@ def tograyscale(image):
 
 def detect_edges(image, thresh1=0, thresh2=80):
     edges = cv2.Canny(image.get(), thresh1, thresh2, 5)
-    return cupy.asarray(edges)
-
-def detect_edges_GPU(image, detector):
-    dstImg = detector.detect(image)
-    return dstImg.download()
+    return edges
 
 def detect_edges_sobel(img):
     img = cv2.GaussianBlur(img, (25, 25), 0)
@@ -69,7 +65,7 @@ def boxcount(image, sizes):
     y = []
     rows, cols = image.shape
 
-    prefsum = cupy.zeros((rows + 1, cols + 1))
+    prefsum = np.zeros((rows + 1, cols + 1))
     prefsum[1:,1:] = image.cumsum(axis=0).cumsum(axis=1)
     for box_size in sizes:
         black_box_count = 0
@@ -87,7 +83,7 @@ def boxcount_4x(image, sizes):
     rows, cols = image.shape
 
     prefsum = np.zeros((rows + 1, cols + 1))
-    prefsum[1:,1:] = (image.cumsum(axis=0).cumsum(axis=1)).get()
+    prefsum[1:,1:] = (image.cumsum(axis=0).cumsum(axis=1))
 
     for box_size in sizes:
         black_box_count = 0
