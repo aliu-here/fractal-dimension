@@ -8,7 +8,6 @@ import glob
 import pandas as pd
 from multiprocessing import Process, Manager
 
-
 manager = Manager()
 paths = manager.list()
 fds = manager.list()
@@ -58,10 +57,7 @@ for t in threads:
 
 for t in threads:
     t.join()
-
-print(paths, fds, quality)
-
 out = pd.DataFrame({"filename" : list(paths),
                     "fractal dimension": list(fds),
                     "quality" : list(quality)})
-out.to_csv("fds_4xboxcount_fft.csv")
+out.to_csv("drimdb.csv")

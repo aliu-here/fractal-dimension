@@ -2,6 +2,7 @@ import cv2
 import math
 import numpy as np
 import copy
+import scipy
 
 def readfile(path):
     image = cv2.imread(path, cv2.IMREAD_UNCHANGED)
@@ -41,23 +42,21 @@ def high_pass_filter(img, filter_size):
     tmp[:rows,:cols] = img[:,:]
     img = tmp
     rows, cols = optimal_rows, optimal_cols
-    f_r, f_g, f_b = np.fft.fft2(np.array(img[:,:,0], dtype=np.float32) / 255), np.fft.fft2(np.array(img[:,:,1], dtype=np.float32) / 255), np.fft.fft2(np.array(img[:,:,2], dtype=np.float32) / 255)
-    fshift_r, fshift_g, fshift_b = np.fft.fftshift(f_r), np.fft.fftshift(f_g), np.fft.fftshift(f_b)  
+    
+    for i in range(3):
+        img[:,:,i] = scipy.fft.fftshift(scipy.fft.dctn(np.array(img[:,:,i], dtype=np.float32) / 255))
 
     center_row = rows // 2
     center_col = cols // 2
-    transformed = [copy.deepcopy(fshift_r), copy.deepcopy(fshift_g), copy.deepcopy(fshift_b)]
-    for channel in transformed:
+    for i in range(3):
         mask = np.zeros((rows, cols))
         mask[center_row - filter_size:center_row + filter_size + 1, center_col - filter_size : center_col + filter_size + 1] = 1
-        channel[mask != 0] = 0
+        img[:,:,i][mask != 0] = 0
 
-    high_pass = np.zeros(img.shape)
-    high_pass[:,:,3] = 1
     for i in range(3):
-        f_ishift = np.fft.ifftshift(transformed[i])
-        high_pass[:,:,i] = np.real(np.fft.ifft2(f_ishift))
-    return np.array(np.clip(high_pass * 255, 0, 255), dtype='uint8')
+        f_ishift = scipy.fft.ifftshift(img[:,:,i])
+        img[:,:,i] = scipy.fft.idctn(f_ishift)
+    return np.array(np.clip(img * 255, 0, 255), dtype='uint8')
 
 
 def calc_sum_area(table, br, tl):
