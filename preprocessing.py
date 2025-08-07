@@ -94,32 +94,43 @@ def boxcount_4x(image, sizes):
             for col in range(0, cols, box_size):
                 in_box = (calc_sum_area(prefsum, (min(row + box_size, rows), min(col + box_size, cols)), (row, col))) > 0
                 black_box_count += in_box
-        x.append(math.log(1/box_size))
-        y.append(math.log(black_box_count))
+        try:
+            x.append(math.log(1/box_size))
+            y.append(math.log(black_box_count))
+        except:
+            pass
 
         black_box_count = 0
         for row in range(0, rows, box_size):
             for col in range(cols - box_size - 1, -box_size, -box_size):
                 in_box = (calc_sum_area(prefsum, (min(box_size + row, rows), col + box_size), (row, max(col, 0)))) > 0
                 black_box_count += in_box
-        x.append(math.log(1/box_size))
-        y.append(math.log(black_box_count))
-
+        try:
+            x.append(math.log(1/box_size))
+            y.append(math.log(black_box_count))
+        except:
+            pass
         black_box_count = 0
         for row in range(rows - box_size - 1, -box_size, -box_size):
             for col in range(cols - box_size - 1, -box_size, -box_size):
                 in_box = (calc_sum_area(prefsum, (box_size + row, box_size + col), (max(row, 0), max(col, 0)))) > 0
                 black_box_count += in_box
-        x.append(math.log(1/box_size))
-        y.append(math.log(black_box_count))
+        try:
+            x.append(math.log(1/box_size))
+            y.append(math.log(black_box_count))
+        except:
+            pass
 
         black_box_count = 0
         for row in range(rows - box_size - 1, -box_size, -box_size):
             for col in range(0, cols, box_size):
                 in_box = (calc_sum_area(prefsum, (box_size + row, min(box_size + col, cols)), (max(row, 0), col))) > 0
                 black_box_count += in_box
-        x.append(math.log(1/box_size))
-        y.append(math.log(black_box_count))
+        try:
+            x.append(math.log(1/box_size))
+            y.append(math.log(black_box_count))
+        except:
+            pass
     return x, y
 
 def linregression(x, y):
