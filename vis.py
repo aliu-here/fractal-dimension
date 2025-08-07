@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-data = pd.read_csv("./fds_4xboxcount_fft.csv")
+data = pd.read_csv("./drimdb.csv")
 
 fig, ax = plt.subplots(2)
 

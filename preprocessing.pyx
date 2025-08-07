@@ -59,7 +59,8 @@ def high_pass_filter(img, filter_size):
     return np.array(np.clip(img * 255, 0, 255), dtype='uint8')
 
 
-def calc_sum_area(table, br, tl):
+def calc_sum_area(table, br, box_size):
+    tl = (max(br[0] - box_size, 0), max(br[1] - box_size, 0))
     return table[tl[0]][tl[1]] + table[br[0]][br[1]] - table[tl[0]][br[1]] - table[br[0]][tl[1]]
 
 def boxcount(image, sizes):
@@ -88,43 +89,32 @@ def boxcount_4x(image, sizes):
     prefsum[1:,1:] = (image.cumsum(axis=0).cumsum(axis=1))
 
     for box_size in sizes:
-        black_box_count = 0
-        for row in range(0, rows, box_size):
-            for col in range(0, cols, box_size):
-                in_box = (calc_sum_area(prefsum, (min(row + box_size, rows), min(col + box_size, cols)), (row, col))) > 0
-                black_box_count += in_box
+        boxlocs = [[(min(box_size + x, rows), min(box_size + y, cols)) for x in range(0, rows, box_size)] for y in range(0, cols, box_size)]
+        black_box_count = sum(np.array([[calc_sum_area(prefsum, box, box_size) > 0 for box in row] for row in boxlocs]).flatten())
         try:
             x.append(math.log(1/box_size))
             y.append(math.log(black_box_count))
         except:
             pass
 
-        black_box_count = 0
-        for row in range(0, rows, box_size):
-            for col in range(cols - box_size - 1, -box_size, -box_size):
-                in_box = (calc_sum_area(prefsum, (min(box_size + row, rows), col + box_size), (row, max(col, 0)))) > 0
-                black_box_count += in_box
-        try:
-            x.append(math.log(1/box_size))
-            y.append(math.log(black_box_count))
-        except:
-            pass
-        black_box_count = 0
-        for row in range(rows - box_size - 1, -box_size, -box_size):
-            for col in range(cols - box_size - 1, -box_size, -box_size):
-                in_box = (calc_sum_area(prefsum, (box_size + row, box_size + col), (max(row, 0), max(col, 0)))) > 0
-                black_box_count += in_box
+        boxlocs = [[(min(box_size + x, rows), box_size + y) for x in range(0, rows, box_size)] for y in range(cols - box_size - 1, -box_size, -box_size)]
+        black_box_count = sum(np.array([[calc_sum_area(prefsum, box, box_size) > 0 for box in row] for row in boxlocs]).flatten())
         try:
             x.append(math.log(1/box_size))
             y.append(math.log(black_box_count))
         except:
             pass
 
-        black_box_count = 0
-        for row in range(rows - box_size - 1, -box_size, -box_size):
-            for col in range(0, cols, box_size):
-                in_box = (calc_sum_area(prefsum, (box_size + row, min(box_size + col, cols)), (max(row, 0), col))) > 0
-                black_box_count += in_box
+        boxlocs = [[(box_size + x, box_size + y) for x in range(rows - box_size - 1, -box_size, -box_size)] for y in range(cols - box_size - 1, -box_size, -box_size)]
+        black_box_count = sum(np.array([[calc_sum_area(prefsum, box, box_size) > 0 for box in row] for row in boxlocs]).flatten()) 
+        try:
+            x.append(math.log(1/box_size))
+            y.append(math.log(black_box_count))
+        except:
+            pass
+
+        boxlocs = [[(box_size + x, min(box_size + y, cols)) for x in range(rows - box_size - 1, -box_size, -box_size)] for y in range(0, cols, box_size)]
+        black_box_count = sum(np.array([[calc_sum_area(prefsum, box, box_size) > 0 for box in row] for row in boxlocs]).flatten()) 
         try:
             x.append(math.log(1/box_size))
             y.append(math.log(black_box_count))
