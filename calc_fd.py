@@ -19,13 +19,13 @@ def calc_fd(files, labels, fds, paths, quality):
     for path, label in zip(files, labels):
         edges = detect_edges(high_pass_filter(fillalpha(readfile(path)), 0))
         edges = edges[:,:] > 127
-        x, y = boxcount_4x(edges, box_sizes)
+        x, y = boxcount(edges, box_sizes)
         fd, _ = linregression(x, y)
         print(fd, path, label)
         fds.append(fd)
         paths.append(path)
         quality.append(label)
-thread_count = 16
+thread_count = 1
 
 divided_files = []
 divided_labels = []

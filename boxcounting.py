@@ -33,19 +33,25 @@ def factors(val):
 
 image = detect_edges(fillalpha(readfile(sys.argv[1])))
 rows, cols = image.shape
-size_factor = factors(cols)
+size_factor = [] 
 
 thresh = 127
 
 x = []
 y = []
 
-x, y = boxcount_4x(image, list(size_factor) + [2 ** n for n in range(1, 7)], thresh)
+x, y = boxcount_4x(image, list(size_factor) + [2 ** n for n in range(1, 7)])
+
+x_np, y_np = boxcount_4x_np(image, list(size_factor) + [2 ** n for n in range(1, 7)])
 
 print(size_factor)
 
 print(x)
 print(y)
+
+print("np version:")
+print(x_np)
+print(y_np)
 
 #for factor in size_factor:
     #    black_pix_count = 0;
@@ -77,7 +83,11 @@ print(y)
     #print()
 
 m, b = np.polyfit(x, y, 1);
+print("original")
 print(m)
+m_np, b_np = np.polyfit(x_np, y_np, 1)
+print("np version")
+print(m_np)
 fig, axs = plt.subplots(1);
 axs.scatter(x, y);
 axs.set_xlabel("log of 1/box size")

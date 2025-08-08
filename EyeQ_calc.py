@@ -12,7 +12,7 @@ quality = manager.list()
 starttime = 0
 total_count = 0
 
-box_sizes = [2 ** n for n in range(1, 8)]
+box_sizes = [2 ** n for n in range(2, 8)]
 
 def calc_fd(files, labels, fds, paths, quality):
     for path, label in zip(files, labels):

@@ -1,7 +1,6 @@
 import cv2
 import math
 import numpy as np
-import copy
 import scipy
 
 def readfile(path):
@@ -22,10 +21,6 @@ def tograyscale(image):
 def detect_edges(image, thresh1=0, thresh2=80):
     edges = cv2.Canny(image, thresh1, thresh2, 5)
     return np.asarray(edges)
-
-def detect_edges_GPU(image, detector):
-    dstImg = detector.detect(image)
-    return dstImg.download()
 
 def detect_edges_sobel(img):
     img = cv2.GaussianBlur(img, (25, 25), 0)
@@ -59,8 +54,11 @@ def high_pass_filter(img, filter_size):
     return np.array(np.clip(img * 255, 0, 255), dtype='uint8')
 
 
-def calc_sum_area(table, br, box_size):
-    tl = (max(br[0] - box_size, 0), max(br[1] - box_size, 0))
+def calc_sum_area(table, tl, box_size):
+    rows, cols = table.shape
+    cols -= 1
+    rows -= 1
+    br = (min(tl[0] + box_size, rows), min(tl[1] + box_size, cols))
     return table[tl[0]][tl[1]] + table[br[0]][br[1]] - table[tl[0]][br[1]] - table[br[0]][tl[1]]
 
 def boxcount(image, sizes):
@@ -74,7 +72,7 @@ def boxcount(image, sizes):
         black_box_count = 0
         for row in range(0, rows, box_size):
             for col in range(0, cols, box_size):
-                in_box = (prefsum[min(row + box_size, rows)][min(col + box_size, cols)] - prefsum[row][col]) > 0
+                in_box = (calc_sum_area(prefsum, (row, col), box_size)) > 0
                 black_box_count += in_box
         x.append(math.log(1/box_size))
         y.append(math.log(black_box_count))
@@ -120,6 +118,107 @@ def boxcount_4x(image, sizes):
             y.append(math.log(black_box_count))
         except:
             pass
+    return x, y
+
+def count_downsampled(downsampled_sat):
+    diag_shift = np.zeros(downsampled_sat.shape)
+    diag_shift[1:,1:] = downsampled_sat[:-1,:-1]
+
+    left_shift = np.zeros(downsampled_sat.shape)
+    left_shift[:,1:] = downsampled_sat[:,:-1]
+
+    up_shift = np.zeros(downsampled_sat.shape)
+    up_shift[1:,:] = downsampled_sat[:-1,:]
+
+    downsampled_sat = downsampled_sat + diag_shift - left_shift - up_shift
+
+    return np.count_nonzero(downsampled_sat)
+
+def boxcount_4x_np(image, sizes):
+    x = []
+    y = []
+    rows, cols = image.shape
+
+    prefsum = np.zeros((rows + 1, cols + 1))
+    prefsum[1:,1:] = image.cumsum(axis=0).cumsum(axis=1)
+
+    for box_size in sizes:
+        boxes_values = np.zeros((math.ceil(rows / box_size) + 1, math.ceil(cols / box_size) + 1))
+        #start at top left corner
+        boxes_values[0:-1,0:-1] = prefsum[0:rows:box_size,0:cols:box_size]
+
+        boxes_values[-1,:-1] = prefsum[-1, 0:cols:box_size] # fill in bottom row
+
+        boxes_values[:-1,-1] = prefsum[0:rows:box_size, -1] # fill in rightmost col
+
+        boxes_values[-1][-1] = prefsum[rows][cols]
+        count = count_downsampled(boxes_values)
+        x.append(math.log(1/box_size))
+        y.append(math.log(count))
+
+        if (cols % box_size != 0):
+            #start at top right corner
+            boxes_values[0:-1,1:-1] = prefsum[0:rows:box_size,(cols%box_size):cols:box_size]
+
+            boxes_values[-1,:-1] = prefsum[-1, 0:cols:box_size] # fill in bottom row
+
+            boxes_values[:-1,-1] = prefsum[0:rows:box_size, -1] # fill in rightmost col
+            boxes_values[:-1,0] = prefsum[0:rows:box_size, 0] # fill in leftmost col
+
+            boxes_values[-1][-1] = prefsum[rows][cols]
+            count = count_downsampled(boxes_values)
+            x.append(math.log(1/box_size))
+            y.append(math.log(count))
+
+        if (rows % box_size != 0 and cols % box_size != 0):
+            #bottom right corner
+            boxes_values[1:-1,1:-1] = prefsum[(rows % box_size):rows:box_size,(cols%box_size):cols:box_size]
+
+            boxes_values[-1,:-1] = prefsum[-1, 0:cols:box_size]
+            boxes_values[0,:-1] = prefsum[0, 0:cols:box_size]
+
+            boxes_values[:-1,-1] = prefsum[0:rows:box_size, -1]
+            boxes_values[:-1, 0] = prefsum[0:rows:box_size, 0]
+
+            boxes_values[-1][-1] = prefsum[rows][cols]
+            count = count_downsampled(boxes_values)
+            x.append(math.log(1/box_size))
+            y.append(math.log(count))
+
+        if (rows % box_size != 0):
+            #bottom left corner
+            boxes_values[1:-1,0:-1] = prefsum[(rows % box_size):rows:box_size,0:cols:box_size]
+
+            boxes_values[-1,:-1] = prefsum[-1, 0:cols:box_size]
+            boxes_values[0,:-1] = prefsum[0, 0:cols:box_size]
+
+            boxes_values[:-1,-1] = prefsum[0:rows:box_size, -1]
+
+            boxes_values[-1][-1] = prefsum[rows][cols]
+            count = count_downsampled(boxes_values)
+            x.append(math.log(1/box_size))
+            y.append(math.log(count))
+
+    return x, y
+
+def boxcount_nparr(image, sizes):
+    x = []
+    y = []
+    rows, cols = image.shape
+
+    prefsum = np.zeros((rows + 1, cols + 1))
+    prefsum[1:,1:] = image.cumsum(axis=0).cumsum(axis=1)
+
+    for box_size in sizes:
+        boxes_values = np.zeros((math.ceil(rows / box_size) + 1, math.ceil(cols / box_size) + 1))
+        #start at top left corner
+        boxes_values[0:-1,0:-1] = prefsum[0:rows:box_size,0:cols:box_size]
+        boxes_values[-1,:-1] = prefsum[-1, 0:cols:box_size]
+        boxes_values[:-1,-1] = prefsum[0:rows:box_size, -1]
+        boxes_values[-1,-1] = prefsum[rows][cols]
+        count = count_downsampled(boxes_values)
+        x.append(math.log(1/box_size))
+        y.append(math.log(count))
     return x, y
 
 def linregression(x, y):
